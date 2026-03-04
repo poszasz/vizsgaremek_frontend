@@ -1,7 +1,7 @@
 body {
     margin: 0;
     padding: 0;
-    background-color: #0a0a0a;
+    background-color: #ffffff;
     color: #ffffff;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
       'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
@@ -15,12 +15,13 @@ body {
   }
   
   .bg-secondary {
-    background-color: #1a1a1a !important;
-    border-bottom: 1px solid #333;
+    background-color: #ada6a6 !important;
+    
   }
   
   .navbar {
     padding: 0.5rem 1rem;
+    
   }
   
   .navbar-text {
@@ -40,7 +41,7 @@ body {
   }
   
   ::placeholder {
-    color: #aaa !important;
+    color: #ffffff !important;
     opacity: 1 !important;
   }
   

@@ -4,7 +4,6 @@ import TextBox from "../components/TextBox"
 import Button from "../components/Button"
 import { login } from "../api"
 import { useNavigate } from "react-router-dom"
-import logo from '../assets/carcardsLogo.png'
 
 export default function LoginPage() {
     const navigation = useNavigate()
@@ -56,44 +55,66 @@ export default function LoginPage() {
 
     return (
         <div className="vh-100 d-flex flex-column">
-            <nav className="navbar navbar-dark bg-secondary">
-                <div className="container-fluid d-flex align-items-center position-relative">
-                    <button 
-                        onClick={goToHome}
-                        style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
-                    >
-                        <img 
-                            src={logo} 
-                            alt="Car Cards Logo" 
-                            style={{ height: '40px', width: 'auto' }} 
-                        />
-                    </button>
+            {/* Fix méretű navbar */}
+            <nav className="navbar" style={{ 
+                height: '70px', 
+                minHeight: '70px',
+                backgroundColor: '#d1d1d1'
+            }}>
+                <div className="container-fluid d-flex align-items-center justify-content-between px-4" style={{ height: '100%' }}>
+                    {/* Bal oldal üres - egyensúly miatt */}
+                    <div style={{ width: '50px' }}></div>
 
-                    <span className="navbar-text fs-3 text-white position-absolute start-50 translate-middle-x">
+                    {/* Középen a Login szöveg */}
+                    <span style={{ 
+                        fontSize: '2rem', 
+                        fontWeight: '500',
+                        color: '#000000',
+                        lineHeight: '1',
+                        position: 'absolute',
+                        left: '50%',
+                        transform: 'translateX(-50%)'
+                    }}>
                         Login
                     </span>
 
-                    <div className="ms-auto">
-                        {isLoggedIn && (
-                            <button
-                                className="btn btn-outline-light"
-                                onClick={handleLogout}
-                                style={{ borderRadius: '50%', width: '40px', height: '40px' }}
-                            >
-                                ↪
-                            </button>
-                        )}
-                    </div>
+                    {/* Jobb oldali vissza ikon */}
+                    <button
+                        onClick={goToHome}
+                        style={{
+                            background: 'none',
+                            border: 'none',
+                            color: '#000000',
+                            fontSize: '2rem',
+                            cursor: 'pointer',
+                            width: '50px',
+                            height: '50px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderRadius: '50%',
+                            transition: 'background-color 0.3s ease',
+                            padding: 0
+                        }}
+                        onMouseEnter={(e) => {
+                            e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.1)'
+                        }}
+                        onMouseLeave={(e) => {
+                            e.target.style.backgroundColor = 'transparent'
+                        }}
+                    >
+                        ←
+                    </button>
                 </div>
             </nav>
 
             <div className="flex-grow-1 d-flex justify-content-center align-items-center p-4">
                 <div className="text-center" style={{ maxWidth: '600px', width: '100%' }}>
-                    
+
                     <h2 className="text-white mb-4" style={{ fontSize: '2rem', fontWeight: '300' }}>
                         Welcome Back!
                     </h2>
-                    
+
                     <div className="mb-4">
                         <TextBox
                             type={"text"}
@@ -135,10 +156,10 @@ export default function LoginPage() {
                                 if (!emailOrUsername || !password) {
                                     return alert("Please fill in all fields!")
                                 }
-                                
+
                                 setLoading(true)
                                 const res = await login(emailOrUsername, password)
-                                
+
                                 if (res.result) {
                                     alert("Successful login!")
                                     navigation('/main')

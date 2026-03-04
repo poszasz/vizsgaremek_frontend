@@ -4,7 +4,6 @@ import TextBox from "../components/TextBox"
 import Button from "../components/Button"
 import { registration } from "../api"
 import { useNavigate } from "react-router-dom"
-import logo from '../assets/carcardsLogo.png'
 
 export default function RegistrationPage() {
     const navigation = useNavigate()
@@ -21,7 +20,7 @@ export default function RegistrationPage() {
         fontSize: '1.3rem',
         borderRadius: '30px',
         border: 'none',
-        backgroundColor: '#27ae60',
+        backgroundColor: '#3498db',
         color: 'white',
         cursor: 'pointer',
         transition: 'all 0.3s ease',
@@ -58,39 +57,61 @@ export default function RegistrationPage() {
 
     return (
         <div className="vh-100 d-flex flex-column">
-            <nav className="navbar navbar-dark bg-secondary">
-                <div className="container-fluid d-flex align-items-center position-relative">
-                    <button 
-                        onClick={goToHome}
-                        style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
-                    >
-                        <img src={logo} alt="Car Cards Logo" style={{ height: '40px', width: 'auto' }} />
-                    </button>
+            {/* Fix méretű navbar */}
+            <nav className="navbar" style={{ 
+                height: '70px', 
+                minHeight: '70px',
+                backgroundColor: '#d1d1d1',
+            }}>
+                <div className="container-fluid d-flex align-items-center justify-content-between px-4" style={{ height: '100%' }}>
+                    {/* Bal oldal üres - egyensúly miatt */}
+                    <div style={{ width: '50px' }}></div>
 
-                    <span className="navbar-text fs-3 text-white position-absolute start-50 translate-middle-x">
+                    {/* Középen a Sign Up szöveg */}
+                    <span style={{ 
+                        fontSize: '2rem', 
+                        fontWeight: '500',
+                        color: '#000000',
+                        lineHeight: '1',
+                        position: 'absolute',
+                        left: '50%',
+                        transform: 'translateX(-50%)'
+                    }}>
                         Sign Up
                     </span>
 
-                    <div className="ms-auto">
-                        {isLoggedIn && (
-                            <button
-                                className="btn btn-outline-light"
-                                onClick={handleLogout}
-                                style={{ borderRadius: '50%', width: '40px', height: '40px' }}
-                            >
-                                ↪
-                            </button>
-                        )}
-                    </div>
+                    {/* Jobb oldali vissza ikon */}
+                    <button
+                        onClick={goToHome}
+                        style={{
+                            background: 'none',
+                            border: 'none',
+                            color: '#000000',
+                            fontSize: '2rem',
+                            cursor: 'pointer',
+                            width: '50px',
+                            height: '50px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderRadius: '50%',
+                            transition: 'background-color 0.3s ease',
+                            padding: 0
+                        }}
+                        onMouseEnter={(e) => {
+                            e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.1)'
+                        }}
+                        onMouseLeave={(e) => {
+                            e.target.style.backgroundColor = 'transparent'
+                        }}
+                    >
+                        ←
+                    </button>
                 </div>
             </nav>
 
             <div className="flex-grow-1 d-flex justify-content-center align-items-center p-4">
                 <div className="text-center" style={{ maxWidth: '1000px', width: '100%' }}>
-                    
-                    <h2 className="text-white mb-4" style={{ fontSize: '2rem', fontWeight: '300' }}>
-                        Create Account
-                    </h2>
                     
                     <div className="row g-4">
                         <div className="col-md-6">
@@ -141,13 +162,13 @@ export default function RegistrationPage() {
                             style={buttonStyle}
                             onMouseEnter={(e) => {
                                 if (!loading) {
-                                    e.target.style.backgroundColor = '#219a52'
+                                    e.target.style.backgroundColor = '#2980b9'
                                     e.target.style.transform = 'scale(1.02)'
                                 }
                             }}
                             onMouseLeave={(e) => {
                                 if (!loading) {
-                                    e.target.style.backgroundColor = '#27ae60'
+                                    e.target.style.backgroundColor = '#3498db'
                                     e.target.style.transform = 'scale(1)'
                                 }
                             }}
@@ -186,7 +207,7 @@ export default function RegistrationPage() {
                             style={{
                                 background: 'none',
                                 border: 'none',
-                                color: '#6fcf97',
+                                color: '#5dade2',
                                 cursor: 'pointer',
                                 fontSize: '1rem',
                                 textDecoration: 'underline',
