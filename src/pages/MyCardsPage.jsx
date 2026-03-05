@@ -10,6 +10,8 @@ export default function MyCardsPage() {
     const [loading, setLoading] = useState(true)
     const [user, setUser] = useState(null)
     const [showNotifications, setShowNotifications] = useState(false)
+    const [selectedCard, setSelectedCard] = useState(null)
+    const [showCardModal, setShowCardModal] = useState(false)
 
     useEffect(() => {
         const token = localStorage.getItem('token')
@@ -31,6 +33,11 @@ export default function MyCardsPage() {
             setCards(res.cards)
         }
         setLoading(false)
+    }
+
+    const handleCardClick = (card) => {
+        setSelectedCard(card)
+        setShowCardModal(true)
     }
 
     const handleLogout = () => {
@@ -56,6 +63,11 @@ export default function MyCardsPage() {
     ]
 
     const unreadCount = notifications.filter(n => !n.read).length
+
+    // Kép placeholder függvény
+    const getImageUrl = (card) => {
+        return card.image_url || `https://via.placeholder.com/400x300?text=${card.manufacturer}+${card.name}`;
+    }
 
     // Kártya stílus - 5x3-as rács
     const cardContainerStyle = {
@@ -98,7 +110,7 @@ export default function MyCardsPage() {
         color: '#333'
     }
 
-    const specsStyle = {
+    const specsPreviewStyle = {
         display: 'grid',
         gridTemplateColumns: '1fr 1fr',
         gap: '8px',
@@ -123,7 +135,7 @@ export default function MyCardsPage() {
 
     return (
         <div className="vh-100 d-flex flex-column">
-            {/* Egységes navbar - változatlan */}
+            {/* Navbar */}
             <nav className="navbar" style={{ 
                 height: '70px', 
                 minHeight: '70px',
@@ -214,7 +226,7 @@ export default function MyCardsPage() {
                                 )}
                             </button>
 
-                            {/* Értesítési ablak - világos változat */}
+                            {/* Értesítési ablak */}
                             {showNotifications && (
                                 <div style={{
                                     position: 'absolute',
@@ -322,7 +334,7 @@ export default function MyCardsPage() {
                 </div>
             </nav>
 
-            {/* Világos háttér */}
+            {/* Fő tartalom */}
             <div className="flex-grow-1" style={{ overflowY: 'auto', backgroundColor: '#f5f5f5' }}>
                 {loading ? (
                     <div className="d-flex justify-content-center align-items-center h-100">
@@ -343,6 +355,7 @@ export default function MyCardsPage() {
                                     <div 
                                         key={card.id} 
                                         style={cardStyle}
+                                        onClick={() => handleCardClick(card)}
                                         onMouseEnter={(e) => {
                                             e.currentTarget.style.transform = 'scale(1.05)'
                                             e.currentTarget.style.boxShadow = '0 10px 20px rgba(0,0,0,0.1)'
@@ -356,29 +369,28 @@ export default function MyCardsPage() {
                                     >
                                         {/* Kép */}
                                         <img 
-                                            src={card.image_url || 'https://via.placeholder.com/300x200?text=No+Image'} 
+                                            src={getImageUrl(card)}
                                             alt={`${card.manufacturer} ${card.name}`}
                                             style={imageStyle}
                                             onError={(e) => {
-                                                e.target.src = 'https://via.placeholder.com/300x200?text=No+Image'
+                                                e.target.src = `https://via.placeholder.com/300x150?text=${card.manufacturer}+${card.name}`
                                             }}
                                         />
                                         
-                                        {/* Tartalom */}
+                                        {/* Tartalom - csak alap adatok */}
                                         <div style={contentStyle}>
                                             <div style={carNameStyle}>
                                                 {card.manufacturer} {card.name}
                                             </div>
                                             
-                                            {/* Főbb specifikációk */}
-                                            <div style={specsStyle}>
-                                                <div style={specItemStyle}>
-                                                    <span style={specLabelStyle}>Engine</span>
-                                                    <span style={specValueStyle}>{card.engine || 'N/A'}</span>
-                                                </div>
+                                            <div style={specsPreviewStyle}>
                                                 <div style={specItemStyle}>
                                                     <span style={specLabelStyle}>HP</span>
                                                     <span style={specValueStyle}>{card.horsepower || 'N/A'} hp</span>
+                                                </div>
+                                                <div style={specItemStyle}>
+                                                    <span style={specLabelStyle}>0-100</span>
+                                                    <span style={specValueStyle}>{card.acceleration || 'N/A'}s</span>
                                                 </div>
                                                 <div style={specItemStyle}>
                                                     <span style={specLabelStyle}>Fuel</span>
@@ -388,26 +400,17 @@ export default function MyCardsPage() {
                                                     <span style={specLabelStyle}>Gearbox</span>
                                                     <span style={specValueStyle}>{card.gearbox || 'N/A'}</span>
                                                 </div>
-                                                <div style={specItemStyle}>
-                                                    <span style={specLabelStyle}>0-100</span>
-                                                    <span style={specValueStyle}>{card.acceleration || 'N/A'}s</span>
-                                                </div>
-                                                <div style={specItemStyle}>
-                                                    <span style={specLabelStyle}>Top Speed</span>
-                                                    <span style={specValueStyle}>{card.top_speed || 'N/A'} km/h</span>
-                                                </div>
                                             </div>
                                             
-                                            {/* További infók */}
                                             <div style={{ 
                                                 marginTop: '10px', 
                                                 fontSize: '0.8rem', 
                                                 color: '#666',
+                                                textAlign: 'center',
                                                 borderTop: '1px solid #eee',
                                                 paddingTop: '8px'
                                             }}>
-                                                <div>Torque: {card.torque || 'N/A'} Nm</div>
-                                                <div>Weight: {card.weight || 'N/A'} kg</div>
+                                                Click for details
                                             </div>
                                         </div>
                                     </div>
@@ -425,6 +428,202 @@ export default function MyCardsPage() {
                     </>
                 )}
             </div>
+
+            {/* Card Details Modal */}
+            {showCardModal && selectedCard && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: 'rgba(0,0,0,0.5)',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    zIndex: 2000
+                }}
+                onClick={() => {
+                    setShowCardModal(false)
+                    setSelectedCard(null)
+                }}
+                >
+                    <div style={{
+                        backgroundColor: '#ffffff',
+                        borderRadius: '20px',
+                        padding: '30px',
+                        maxWidth: '800px',
+                        width: '90%',
+                        maxHeight: '90vh',
+                        overflowY: 'auto',
+                        boxShadow: '0 10px 25px rgba(0,0,0,0.1)'
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Modal bezárás gomb */}
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '10px' }}>
+                            <button
+                                style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    fontSize: '1.5rem',
+                                    cursor: 'pointer',
+                                    color: '#666'
+                                }}
+                                onClick={() => {
+                                    setShowCardModal(false)
+                                    setSelectedCard(null)
+                                }}
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        {/* Kép */}
+                        <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+                            <img 
+                                src={getImageUrl(selectedCard)}
+                                alt={`${selectedCard.manufacturer} ${selectedCard.name}`}
+                                style={{
+                                    maxWidth: '100%',
+                                    maxHeight: '300px',
+                                    borderRadius: '15px',
+                                    boxShadow: '0 5px 15px rgba(0,0,0,0.1)'
+                                }}
+                                onError={(e) => {
+                                    e.target.src = `https://via.placeholder.com/600x400?text=${selectedCard.manufacturer}+${selectedCard.name}`
+                                }}
+                            />
+                        </div>
+
+                        {/* Cím */}
+                        <h2 style={{ 
+                            color: '#333', 
+                            marginBottom: '20px',
+                            textAlign: 'center',
+                            fontSize: '2rem',
+                            fontWeight: '600'
+                        }}>
+                            {selectedCard.manufacturer} {selectedCard.name}
+                        </h2>
+
+                        {/* Adatok 2 oszlopban */}
+                        <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: '1fr 1fr',
+                            gap: '20px',
+                            marginTop: '20px'
+                        }}>
+                            {/* Bal oszlop */}
+                            <div>
+                                <div style={detailItemStyle}>
+                                    <span style={detailLabelStyle}>Manufacturer:</span>
+                                    <span style={detailValueStyle}>{selectedCard.manufacturer}</span>
+                                </div>
+                                <div style={detailItemStyle}>
+                                    <span style={detailLabelStyle}>Model:</span>
+                                    <span style={detailValueStyle}>{selectedCard.name}</span>
+                                </div>
+                                <div style={detailItemStyle}>
+                                    <span style={detailLabelStyle}>Fuel:</span>
+                                    <span style={detailValueStyle}>{selectedCard.fuel}</span>
+                                </div>
+                                <div style={detailItemStyle}>
+                                    <span style={detailLabelStyle}>Gearbox:</span>
+                                    <span style={detailValueStyle}>{selectedCard.gearbox}</span>
+                                </div>
+                                <div style={detailItemStyle}>
+                                    <span style={detailLabelStyle}>Engine:</span>
+                                    <span style={detailValueStyle}>{selectedCard.engine}</span>
+                                </div>
+                                <div style={detailItemStyle}>
+                                    <span style={detailLabelStyle}>Horsepower:</span>
+                                    <span style={detailValueStyle}>{selectedCard.horsepower} hp</span>
+                                </div>
+                            </div>
+
+                            {/* Jobb oszlop */}
+                            <div>
+                                <div style={detailItemStyle}>
+                                    <span style={detailLabelStyle}>Torque:</span>
+                                    <span style={detailValueStyle}>{selectedCard.torque} Nm</span>
+                                </div>
+                                <div style={detailItemStyle}>
+                                    <span style={detailLabelStyle}>Weight:</span>
+                                    <span style={detailValueStyle}>{selectedCard.weight} kg</span>
+                                </div>
+                                <div style={detailItemStyle}>
+                                    <span style={detailLabelStyle}>Length:</span>
+                                    <span style={detailValueStyle}>{selectedCard.length} cm</span>
+                                </div>
+                                <div style={detailItemStyle}>
+                                    <span style={detailLabelStyle}>Top Speed:</span>
+                                    <span style={detailValueStyle}>{selectedCard.top_speed} km/h</span>
+                                </div>
+                                <div style={detailItemStyle}>
+                                    <span style={detailLabelStyle}>0-100 km/h:</span>
+                                    <span style={detailValueStyle}>{selectedCard.acceleration} s</span>
+                                </div>
+                                <div style={detailItemStyle}>
+                                    <span style={detailLabelStyle}>Acquired:</span>
+                                    <span style={detailValueStyle}>{new Date(selectedCard.acquired_at).toLocaleDateString()}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Bezárás gomb */}
+                        <div style={{ textAlign: 'center', marginTop: '30px' }}>
+                            <button
+                                style={{
+                                    padding: '12px 30px',
+                                    backgroundColor: '#3498db',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '30px',
+                                    fontSize: '1rem',
+                                    fontWeight: '500',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.3s ease'
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.target.style.backgroundColor = '#2980b9'
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.target.style.backgroundColor = '#3498db'
+                                }}
+                                onClick={() => {
+                                    setShowCardModal(false)
+                                    setSelectedCard(null)
+                                }}
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
+}
+
+// Stílusok a részletekhez
+const detailItemStyle = {
+    marginBottom: '12px',
+    padding: '8px',
+    backgroundColor: '#f8f9fa',
+    borderRadius: '8px'
+}
+
+const detailLabelStyle = {
+    color: '#666',
+    fontSize: '0.9rem',
+    display: 'block',
+    marginBottom: '4px'
+}
+
+const detailValueStyle = {
+    color: '#333',
+    fontSize: '1.1rem',
+    fontWeight: '500',
+    display: 'block'
 }

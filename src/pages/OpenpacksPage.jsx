@@ -15,12 +15,12 @@ export default function OpenpacksPage() {
     useEffect(() => {
         const token = localStorage.getItem('token')
         const userData = localStorage.getItem('user')
-        
+
         if (!token) {
             navigation('/login')
             return
         }
-        
+
         setUser(JSON.parse(userData || '{}'))
         loadPacks()
     }, [])
@@ -45,7 +45,7 @@ export default function OpenpacksPage() {
         if (res.result) {
             setLastCard(res.card)
             setPacks(prev => prev - 1)
-            alert(`You got: ${res.card.card_name} (${res.card.rarity})!`)
+            alert(`You got: ${res.card.manufacturer} ${res.card.card_name}!`)
         } else {
             alert(res.message || "Failed to open pack")
         }
@@ -78,8 +78,8 @@ export default function OpenpacksPage() {
     return (
         <div className="vh-100 d-flex flex-column">
             {/* Egységes navbar - változatlan */}
-            <nav className="navbar" style={{ 
-                height: '70px', 
+            <nav className="navbar" style={{
+                height: '70px',
                 minHeight: '70px',
                 backgroundColor: '#d1d1d1',
                 position: 'relative',
@@ -87,27 +87,27 @@ export default function OpenpacksPage() {
             }}>
                 <div className="container-fluid d-flex align-items-center justify-content-between px-4" style={{ height: '100%' }}>
                     {/* Bal oldali logo */}
-                    <button 
+                    <button
                         onClick={goToMain}
-                        style={{ 
-                            background: 'none', 
-                            border: 'none', 
-                            padding: 0, 
+                        style={{
+                            background: 'none',
+                            border: 'none',
+                            padding: 0,
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center'
                         }}
                     >
-                        <img 
-                            src={logo} 
-                            alt="Car Cards Logo" 
-                            style={{ height: '50px', width: 'auto' }} 
+                        <img
+                            src={logo}
+                            alt="Car Cards Logo"
+                            style={{ height: '50px', width: 'auto' }}
                         />
                     </button>
 
                     {/* Középen az Open Packs szöveg */}
-                    <span style={{ 
-                        fontSize: '2rem', 
+                    <span style={{
+                        fontSize: '2rem',
                         fontWeight: '500',
                         color: '#000000',
                         lineHeight: '1',
@@ -199,8 +199,8 @@ export default function OpenpacksPage() {
                                                     cursor: 'pointer',
                                                     transition: 'background-color 0.2s ease'
                                                 }}
-                                                onMouseEnter={(e) => e.target.style.backgroundColor = '#e8e8e8'}
-                                                onMouseLeave={(e) => e.target.style.backgroundColor = notif.read ? '#ffffff' : '#f0f7ff'}
+                                                    onMouseEnter={(e) => e.target.style.backgroundColor = '#e8e8e8'}
+                                                    onMouseLeave={(e) => e.target.style.backgroundColor = notif.read ? '#ffffff' : '#f0f7ff'}
                                                 >
                                                     <div style={{ color: '#333', fontSize: '0.95rem', marginBottom: '4px' }}>
                                                         {notif.message}
@@ -282,7 +282,7 @@ export default function OpenpacksPage() {
                     <h2 style={{ fontSize: '2rem', fontWeight: '300', color: '#333', marginBottom: '20px' }}>
                         You have {packs} pack{packs !== 1 ? 's' : ''}
                     </h2>
-                    
+
                     {/* Kék gomb (mint a login-nál) */}
                     <button
                         style={{
@@ -326,7 +326,9 @@ export default function OpenpacksPage() {
 
                     {lastCard && !opening && (
                         <div className="mt-5">
-                            <h3 style={{ fontSize: '1.5rem', fontWeight: '300', color: '#333', marginBottom: '15px' }}>Last Card:</h3>
+                            <h3 style={{ fontSize: '1.5rem', fontWeight: '300', color: '#333', marginBottom: '15px' }}>
+                                Last Card:
+                            </h3>
                             <div style={{
                                 backgroundColor: '#ffffff',
                                 color: '#333',
@@ -337,9 +339,18 @@ export default function OpenpacksPage() {
                                 maxWidth: '300px',
                                 margin: '0 auto'
                             }}>
-                                <h4 style={{ fontSize: '1.2rem', fontWeight: 'bold', marginBottom: '10px', color: '#333' }}>{lastCard.card_name}</h4>
-                                <p style={{ margin: '5px 0', color: '#666' }}><strong style={{ color: '#333' }}>Type:</strong> {lastCard.card_type}</p>
-                                <p style={{ margin: '5px 0', color: '#666' }}><strong style={{ color: '#333' }}>Rarity:</strong> {lastCard.rarity}</p>
+                                <h4 style={{ fontSize: '1.2rem', fontWeight: 'bold', marginBottom: '10px', color: '#333' }}>
+                                    {lastCard.manufacturer} {lastCard.card_name}
+                                </h4>
+                                <p style={{ margin: '5px 0', color: '#666' }}>
+                                    <strong style={{ color: '#333' }}>HP:</strong> {lastCard.horsepower} hp
+                                </p>
+                                <p style={{ margin: '5px 0', color: '#666' }}>
+                                    <strong style={{ color: '#333' }}>0-100:</strong> {lastCard.acceleration}s
+                                </p>
+                                <p style={{ margin: '5px 0', color: '#666' }}>
+                                    <strong style={{ color: '#333' }}>Fuel:</strong> {lastCard.fuel}
+                                </p>
                             </div>
                         </div>
                     )}

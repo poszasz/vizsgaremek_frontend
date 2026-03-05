@@ -2,6 +2,9 @@ import { useState, useEffect } from "react"
 import 'bootstrap/dist/css/bootstrap.min.css'
 import { useNavigate } from "react-router-dom"
 import logo from '../assets/carcardsLogo.png'
+import marketImage from '../assets/market-image.png'
+import mycardsImage from '../assets/mycards-image.png'
+import openpacksImage from '../assets/openpacks-image.png'
 
 export default function MainPage() {
     const navigation = useNavigate()
@@ -46,20 +49,51 @@ export default function MainPage() {
         setShowNotifications(!showNotifications)
     }
 
-    const buttonStyle = {
-        width: '400px',
-        padding: '25px 0',
-        fontSize: '1.8rem',
-        fontWeight: 'bold',
-        borderRadius: '20px',
-        border: 'none',
-        backgroundColor: '#1a1a1a',
-        color: 'white',
+    // Gomb stílus - flexbox a középre igazításhoz
+    const buttonContainerStyle = {
+        width: '350px',
+        height: '650px',
+        margin: '0 15px',
         cursor: 'pointer',
-        margin: '15px 0',
+        borderRadius: '20px',
+        overflow: 'hidden',
+        backgroundColor: '#ffffff',
+        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
         transition: 'all 0.3s ease',
-        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.3)',
-        border: '1px solid #333'
+        border: '1px solid #ddd',
+        display: 'flex',
+        flexDirection: 'column',
+        position: 'relative'
+    }
+
+    const imageContainerStyle = {
+        flex: 1,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '20px',
+        backgroundColor: '#f0f0f0'
+    }
+
+    const imageStyle = {
+        maxWidth: '100%',
+        maxHeight: '100%',
+        width: 'auto',
+        height: 'auto',
+        objectFit: 'contain',
+        display: 'block'
+    }
+
+    const textStyle = {
+        padding: '20px 0',
+        fontSize: '1.5rem',
+        fontWeight: '600',
+        color: '#333',
+        textAlign: 'center',
+        backgroundColor: '#f8f8f8',
+        borderTop: '1px solid #eee',
+        letterSpacing: '1px',
+        width: '100%'
     }
 
     // Értesítések minta adatok
@@ -74,8 +108,8 @@ export default function MainPage() {
 
     if (loading) {
         return (
-            <div className="vh-100 d-flex justify-content-center align-items-center" style={{ backgroundColor: '#0a0a0a' }}>
-                <div className="spinner-border text-light" role="status">
+            <div className="vh-100 d-flex justify-content-center align-items-center" style={{ backgroundColor: '#f5f5f5' }}>
+                <div className="spinner-border text-primary" role="status">
                     <span className="visually-hidden">Loading...</span>
                 </div>
             </div>
@@ -84,7 +118,7 @@ export default function MainPage() {
 
     return (
         <div className="vh-100 d-flex flex-column">
-            {/* Egységes navbar - mint a login-nál */}
+            {/* Egységes navbar */}
             <nav className="navbar" style={{
                 height: '70px',
                 minHeight: '70px',
@@ -122,7 +156,7 @@ export default function MainPage() {
                         left: '50%',
                         transform: 'translateX(-50%)'
                     }}>
-                        Menu
+                        Car Cards
                     </span>
 
                     {/* Jobb oldali ikonok */}
@@ -182,58 +216,58 @@ export default function MainPage() {
                                     top: '60px',
                                     right: '0',
                                     width: '300px',
-                                    backgroundColor: '#1a1a1a',
-                                    border: '1px solid #333',
+                                    backgroundColor: '#ffffff',
+                                    border: '1px solid #ddd',
                                     borderRadius: '10px',
-                                    boxShadow: '0 5px 15px rgba(0,0,0,0.3)',
+                                    boxShadow: '0 5px 15px rgba(0,0,0,0.1)',
                                     zIndex: 1001,
                                     overflow: 'hidden'
                                 }}>
                                     <div style={{
                                         padding: '15px',
-                                        borderBottom: '1px solid #333',
-                                        backgroundColor: '#2a2a2a'
+                                        borderBottom: '1px solid #ddd',
+                                        backgroundColor: '#f5f5f5'
                                     }}>
-                                        <h4 style={{ margin: 0, color: 'white', fontSize: '1.1rem' }}>Notifications</h4>
+                                        <h4 style={{ margin: 0, color: '#333', fontSize: '1.1rem' }}>Notifications</h4>
                                     </div>
                                     <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
                                         {notifications.length > 0 ? (
                                             notifications.map(notif => (
                                                 <div key={notif.id} style={{
                                                     padding: '12px 15px',
-                                                    borderBottom: '1px solid #333',
-                                                    backgroundColor: notif.read ? '#1a1a1a' : '#2a2a2a',
+                                                    borderBottom: '1px solid #eee',
+                                                    backgroundColor: notif.read ? '#ffffff' : '#f0f7ff',
                                                     cursor: 'pointer',
                                                     transition: 'background-color 0.2s ease'
                                                 }}
-                                                    onMouseEnter={(e) => e.target.style.backgroundColor = '#333'}
-                                                    onMouseLeave={(e) => e.target.style.backgroundColor = notif.read ? '#1a1a1a' : '#2a2a2a'}
+                                                    onMouseEnter={(e) => e.target.style.backgroundColor = '#e8e8e8'}
+                                                    onMouseLeave={(e) => e.target.style.backgroundColor = notif.read ? '#ffffff' : '#f0f7ff'}
                                                 >
-                                                    <div style={{ color: 'white', fontSize: '0.95rem', marginBottom: '4px' }}>
+                                                    <div style={{ color: '#333', fontSize: '0.95rem', marginBottom: '4px' }}>
                                                         {notif.message}
                                                     </div>
-                                                    <div style={{ color: '#888', fontSize: '0.8rem' }}>
+                                                    <div style={{ color: '#666', fontSize: '0.8rem' }}>
                                                         {notif.time}
                                                     </div>
                                                 </div>
                                             ))
                                         ) : (
-                                            <div style={{ padding: '20px', textAlign: 'center', color: '#888' }}>
+                                            <div style={{ padding: '20px', textAlign: 'center', color: '#666' }}>
                                                 No notifications
                                             </div>
                                         )}
                                     </div>
                                     <div style={{
                                         padding: '10px 15px',
-                                        borderTop: '1px solid #333',
-                                        backgroundColor: '#2a2a2a',
+                                        borderTop: '1px solid #ddd',
+                                        backgroundColor: '#f5f5f5',
                                         textAlign: 'center'
                                     }}>
                                         <button
                                             style={{
                                                 background: 'none',
                                                 border: 'none',
-                                                color: '#5dade2',
+                                                color: '#3498db',
                                                 cursor: 'pointer',
                                                 fontSize: '0.9rem'
                                             }}
@@ -283,56 +317,99 @@ export default function MainPage() {
                 </div>
             </nav>
 
-            <div className="flex-grow-1 d-flex justify-content-center align-items-center">
+            {/* Fő tartalom - gombok egymás mellett */}
+            <div className="flex-grow-1 d-flex justify-content-center align-items-center" style={{ backgroundColor: '#f5f5f5' }}>
                 <div className="text-center">
-                   <button
-                        style={buttonStyle}
-                        onClick={() => navigation('/market')}
-                        onMouseEnter={(e) => {
-                            e.target.style.backgroundColor = '#2c3e50'
-                            e.target.style.borderColor = '#e67e22'
-                            e.target.style.transform = 'scale(1.05)'
-                        }}
-                        onMouseLeave={(e) => {
-                            e.target.style.backgroundColor = '#1a1a1a'
-                            e.target.style.borderColor = '#333'
-                            e.target.style.transform = 'scale(1)'
-                        }}
-                    >🏪Market</button>
+                    <div style={{ display: 'flex', justifyContent: 'center', gap: '40px' }}>
 
-                    <button
-                        style={buttonStyle}
-                        onClick={() => navigation('/openpacks')}
-                        onMouseEnter={(e) => {
-                            e.target.style.backgroundColor = '#2c3e50'
-                            e.target.style.borderColor = '#27ae60'
-                            e.target.style.transform = 'scale(1.05)'
-                        }}
-                        onMouseLeave={(e) => {
-                            e.target.style.backgroundColor = '#1a1a1a'
-                            e.target.style.borderColor = '#333'
-                            e.target.style.transform = 'scale(1)'
-                        }}
-                    >
-                        🎁 Open Packs
-                    </button>
+                        {/* Market gomb */}
+                        <div
+                            style={buttonContainerStyle}
+                            onClick={() => navigation('/market')}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.transform = 'scale(1.05)'
+                                e.currentTarget.style.boxShadow = '0 15px 30px rgba(0,0,0,0.2)'
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.transform = 'scale(1)'
+                                e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)'
+                            }}
+                        >
+                            <div style={imageContainerStyle}>
+                                <img
+                                    src={marketImage}
+                                    alt="Market"
+                                    style={imageStyle}
+                                    onError={(e) => {
+                                        e.target.src = 'https://via.placeholder.com/350x250?text=Market'
+                                    }}
+                                />
+                            </div>
+                            <div style={textStyle}>
+                                MARKET
+                            </div>
+                        </div>
 
-                    <button
-                        style={buttonStyle}
-                        onClick={() => navigation('/mycards')}
-                        onMouseEnter={(e) => {
-                            e.target.style.backgroundColor = '#2c3e50'
-                            e.target.style.borderColor = '#3498db'
-                            e.target.style.transform = 'scale(1.05)'
-                        }}
-                        onMouseLeave={(e) => {
-                            e.target.style.backgroundColor = '#1a1a1a'
-                            e.target.style.borderColor = '#333'
-                            e.target.style.transform = 'scale(1)'
-                        }}
-                    >
-                        🃏 My Cards
-                    </button>
+
+
+                        {/* Open Packs gomb */}
+                        <div
+                            style={buttonContainerStyle}
+                            onClick={() => navigation('/openpacks')}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.transform = 'scale(1.05)'
+                                e.currentTarget.style.boxShadow = '0 15px 30px rgba(0,0,0,0.2)'
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.transform = 'scale(1)'
+                                e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)'
+                            }}
+                        >
+                            <div style={imageContainerStyle}>
+                                <img
+                                    src={openpacksImage}
+                                    alt="Open Packs"
+                                    style={imageStyle}
+                                    onError={(e) => {
+                                        e.target.src = 'https://via.placeholder.com/350x250?text=Open+Packs'
+                                    }}
+                                />
+                            </div>
+                            <div style={textStyle}>
+                                OPEN PACKS
+                            </div>
+                        </div>
+                        {/* My Cards gomb */}
+                        <div
+                            style={buttonContainerStyle}
+                            onClick={() => navigation('/mycards')}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.transform = 'scale(1.05)'
+                                e.currentTarget.style.boxShadow = '0 15px 30px rgba(0,0,0,0.2)'
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.transform = 'scale(1)'
+                                e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)'
+                            }}
+                        >
+                            <div style={imageContainerStyle}>
+                                <img
+                                    src={mycardsImage}
+                                    alt="My Cards"
+                                    style={imageStyle}
+                                    onError={(e) => {
+                                        e.target.src = 'https://via.placeholder.com/350x250?text=My+Cards'
+                                    }}
+                                />
+                            </div>
+                            <div style={textStyle}>
+                                MY CARDS
+                            </div>
+                        </div>
+
+
+
+                    </div>
                 </div>
             </div>
         </div>

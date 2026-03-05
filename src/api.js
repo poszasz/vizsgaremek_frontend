@@ -64,7 +64,7 @@ export async function login(emailOrUsername, password) {
     }
 }
 
-// ========== SAJÁT KÁRTYÁK LEKÉRÉSE ==========
+// ========== SAJÁT KÁRTYÁK LEKÉRÉSE (már van, de biztos) ==========
 export async function getMyCards() {
     try {
         const res = await fetch(`${BASE}/my-cards`, {
@@ -141,6 +141,98 @@ export async function acceptOffer(offerId) {
     try {
         const res = await fetch(`${BASE}/accept-offer/${offerId}`, {
             method: 'POST',
+            credentials: 'include',
+            mode: 'cors',
+            headers: {'Content-Type': 'application/json'}
+        })
+        const data = await res.json()
+        if(!res.ok) return {result: false, message: data.message}
+        else return {result: true, message: data.message}
+    } catch (error) {
+        console.error("Fetch error:", error)
+        return {result: false, message: "Network error: " + error.message}
+    }
+}
+
+// ========== MARKET LISTINGOK LEKÉRÉSE ==========
+export async function getMarketListings() {
+    try {
+        const res = await fetch(`${BASE}/market-listings`, {
+            method: 'GET',
+            credentials: 'include',
+            mode: 'cors',
+            headers: {'Content-Type': 'application/json'}
+        })
+        const data = await res.json()
+        if(!res.ok) return {result: false, message: data.message, listings: []}
+        else return {result: true, listings: data.listings || []}
+    } catch (error) {
+        console.error("Fetch error:", error)
+        return {result: false, message: "Network error: " + error.message, listings: []}
+    }
+}
+
+// ========== ÚJ LISTING LÉTREHOZÁSA ==========
+export async function createListing(userCardId) {
+    try {
+        const res = await fetch(`${BASE}/create-listing`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            credentials: 'include',
+            mode: 'cors',
+            body: JSON.stringify({ userCardId })
+        })
+        const data = await res.json()
+        if(!res.ok) return {result: false, message: data.message}
+        else return {result: true, message: data.message, listingId: data.listingId}
+    } catch (error) {
+        console.error("Fetch error:", error)
+        return {result: false, message: "Network error: " + error.message}
+    }
+}
+
+// ========== AJÁNLAT TÉTELE ==========
+export async function makeOffer(listingId, offeredUserCardId) {
+    try {
+        const res = await fetch(`${BASE}/make-offer`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            credentials: 'include',
+            mode: 'cors',
+            body: JSON.stringify({ listingId, offeredUserCardId })
+        })
+        const data = await res.json()
+        if(!res.ok) return {result: false, message: data.message}
+        else return {result: true, message: data.message, offerId: data.offerId}
+    } catch (error) {
+        console.error("Fetch error:", error)
+        return {result: false, message: "Network error: " + error.message}
+    }
+}
+
+// ========== SAJÁT LISTINGEK LEKÉRÉSE ==========
+export async function getMyListings() {
+    try {
+        const res = await fetch(`${BASE}/my-listings`, {
+            method: 'GET',
+            credentials: 'include',
+            mode: 'cors',
+            headers: {'Content-Type': 'application/json'}
+        })
+        const data = await res.json()
+        if(!res.ok) return {result: false, message: data.message, listings: []}
+        else return {result: true, listings: data.listings || []}
+    } catch (error) {
+        console.error("Fetch error:", error)
+        return {result: false, message: "Network error: " + error.message, listings: []}
+    }
+}
+
+// ========== LISTING TÖRLÉSE ==========
+export async function deleteListing(listingId) {
+    try {
+        const res = await fetch(`${BASE}/listing/${listingId}`, {
+            method: 'DELETE',
             credentials: 'include',
             mode: 'cors',
             headers: {'Content-Type': 'application/json'}

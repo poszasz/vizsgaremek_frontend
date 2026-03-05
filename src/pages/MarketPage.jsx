@@ -2,14 +2,18 @@ import { useState, useEffect } from "react"
 import 'bootstrap/dist/css/bootstrap.min.css'
 import { useNavigate } from "react-router-dom"
 import logo from '../assets/carcardsLogo.png'
-import { getMarketOffers, acceptOffer } from "../api"
+import { getMarketListings, makeOffer, getMyCards } from "../api"
 
 export default function MarketPage() {
     const navigation = useNavigate()
-    const [offers, setOffers] = useState([])
+    const [listings, setListings] = useState([])
+    const [myCards, setMyCards] = useState([])
     const [loading, setLoading] = useState(true)
     const [user, setUser] = useState(null)
     const [showNotifications, setShowNotifications] = useState(false)
+    const [selectedListing, setSelectedListing] = useState(null)
+    const [selectedCard, setSelectedCard] = useState(null)
+    const [showOfferModal, setShowOfferModal] = useState(false)
 
     useEffect(() => {
         const token = localStorage.getItem('token')
@@ -21,25 +25,46 @@ export default function MarketPage() {
         }
         
         setUser(JSON.parse(userData || '{}'))
-        loadOffers()
+        loadListings()
+        loadMyCards()
     }, [])
 
-    const loadOffers = async () => {
+    const loadListings = async () => {
         setLoading(true)
-        const res = await getMarketOffers()
+        const res = await getMarketListings()
         if (res.result) {
-            setOffers(res.offers)
+            setListings(res.listings)
         }
         setLoading(false)
     }
 
-    const handleAcceptOffer = async (offerId) => {
-        const res = await acceptOffer(offerId)
+    const loadMyCards = async () => {
+        const res = await getMyCards()
         if (res.result) {
-            alert("Offer accepted! Check your cards.")
-            loadOffers()
+            setMyCards(res.cards)
+        }
+    }
+
+    const handleMakeOffer = (listing) => {
+        setSelectedListing(listing)
+        setShowOfferModal(true)
+    }
+
+    const handleOfferSubmit = async () => {
+        if (!selectedCard) {
+            alert("Please select a card to offer")
+            return
+        }
+
+        const res = await makeOffer(selectedListing.listing_id, selectedCard.id)
+        if (res.result) {
+            alert("Offer sent successfully!")
+            setShowOfferModal(false)
+            setSelectedListing(null)
+            setSelectedCard(null)
+            loadListings()
         } else {
-            alert(res.message || "Failed to accept offer")
+            alert(res.message || "Failed to send offer")
         }
     }
 
@@ -67,9 +92,15 @@ export default function MarketPage() {
 
     const unreadCount = notifications.filter(n => !n.read).length
 
+    // Kép placeholder (amíg nincs valódi kép)
+    const getImageUrl = (listing) => {
+        // Ha van image_url, azt használjuk, különben placeholder
+        return listing.image_url || `https://via.placeholder.com/300x150?text=${listing.manufacturer}+${listing.name}`;
+    }
+
     return (
         <div className="vh-100 d-flex flex-column">
-            {/* Egységes navbar - változatlan */}
+            {/* Navbar */}
             <nav className="navbar" style={{ 
                 height: '70px', 
                 minHeight: '70px',
@@ -160,7 +191,7 @@ export default function MarketPage() {
                                 )}
                             </button>
 
-                            {/* Értesítési ablak */}
+                            {/* Értesítési ablak - világos téma */}
                             {showNotifications && (
                                 <div style={{
                                     position: 'absolute',
@@ -268,7 +299,7 @@ export default function MarketPage() {
                 </div>
             </nav>
 
-            {/* Világos háttér */}
+            {/* Fő tartalom - világos háttér */}
             <div className="flex-grow-1 container-fluid p-4" style={{ overflowY: 'auto', backgroundColor: '#f5f5f5' }}>
                 {loading ? (
                     <div className="d-flex justify-content-center align-items-center h-100">
@@ -281,22 +312,24 @@ export default function MarketPage() {
                         <div className="row mb-4">
                             <div className="col-12">
                                 <h3 style={{ fontSize: '1.5rem', fontWeight: '300', color: '#333' }}>
-                                    Available Offers ({offers.length})
+                                    Available Listings ({listings.length})
                                 </h3>
                             </div>
                         </div>
                         
                         <div className="row">
-                            {offers.map(offer => (
-                                <div key={offer.id} className="col-md-4 mb-4">
+                            {listings.map(listing => (
+                                <div key={listing.listing_id} className="col-md-3 mb-4">
                                     <div style={{
                                         backgroundColor: '#ffffff',
-                                        color: '#333',
                                         borderRadius: '15px',
-                                        padding: '20px',
+                                        overflow: 'hidden',
                                         border: '1px solid #ddd',
                                         boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-                                        transition: 'transform 0.3s ease, box-shadow 0.3s ease'
+                                        transition: 'transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease',
+                                        height: '100%',
+                                        display: 'flex',
+                                        flexDirection: 'column'
                                     }}
                                     onMouseEnter={(e) => {
                                         e.currentTarget.style.transform = 'scale(1.02)'
@@ -308,57 +341,260 @@ export default function MarketPage() {
                                         e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.05)'
                                         e.currentTarget.style.borderColor = '#ddd'
                                     }}>
-                                        <h4 className="mb-3" style={{ color: '#e67e22' }}>{offer.card_name}</h4>
-                                        <p><strong style={{ color: '#666' }}>Seller:</strong> {offer.seller_username}</p>
-                                        <p><strong style={{ color: '#666' }}>Type:</strong> {offer.card_type}</p>
-                                        <p><strong style={{ color: '#666' }}>Rarity:</strong> {offer.rarity}</p>
-                                        <p><strong style={{ color: '#666' }}>Price:</strong> <span style={{ color: '#e67e22', fontWeight: 'bold' }}>{offer.price} coins</span></p>
+                                        {/* Kép */}
+                                        <img 
+                                            src={getImageUrl(listing)}
+                                            alt={`${listing.manufacturer} ${listing.name}`}
+                                            style={{
+                                                width: '100%',
+                                                height: '120px',
+                                                objectFit: 'cover',
+                                                borderBottom: '1px solid #eee'
+                                            }}
+                                            onError={(e) => {
+                                                e.target.src = `https://via.placeholder.com/300x120?text=${listing.manufacturer}+${listing.name}`
+                                            }}
+                                        />
                                         
-                                        {offer.seller_id !== user?.id && (
-                                            <button
-                                                style={{
-                                                    width: '100%',
-                                                    padding: '10px',
-                                                    marginTop: '15px',
-                                                    backgroundColor: '#3498db',
-                                                    color: 'white',
-                                                    border: 'none',
-                                                    borderRadius: '30px',
-                                                    fontSize: '1rem',
-                                                    cursor: 'pointer',
-                                                    transition: 'all 0.3s ease'
-                                                }}
-                                                onMouseEnter={(e) => {
-                                                    e.target.style.backgroundColor = '#2980b9'
-                                                    e.target.style.transform = 'scale(1.02)'
-                                                }}
-                                                onMouseLeave={(e) => {
-                                                    e.target.style.backgroundColor = '#3498db'
-                                                    e.target.style.transform = 'scale(1)'
-                                                }}
-                                                onClick={() => handleAcceptOffer(offer.id)}
-                                            >
-                                                Buy for {offer.price} coins
-                                            </button>
+                                        {/* Tartalom */}
+                                        <div style={{ padding: '12px', flex: 1 }}>
+                                            <h5 style={{ 
+                                                margin: '0 0 8px 0', 
+                                                color: '#333',
+                                                fontSize: '1rem',
+                                                fontWeight: '600'
+                                            }}>
+                                                {listing.manufacturer} {listing.name}
+                                            </h5>
+                                            
+                                            <p style={{ 
+                                                margin: '4px 0', 
+                                                color: '#666',
+                                                fontSize: '0.9rem'
+                                            }}>
+                                                <strong>Seller:</strong> {listing.seller_username}
+                                            </p>
+                                            
+                                            <p style={{ 
+                                                margin: '4px 0', 
+                                                color: '#e67e22',
+                                                fontSize: '1rem',
+                                                fontWeight: '600'
+                                            }}>
+                                                {listing.horsepower} HP
+                                            </p>
+                                            
+                                            <p style={{ 
+                                                margin: '4px 0', 
+                                                color: '#666',
+                                                fontSize: '0.85rem'
+                                            }}>
+                                                0-100: {listing.acceleration}s
+                                            </p>
+                                        </div>
+                                        
+                                        {/* Gomb */}
+                                        {listing.seller_id !== user?.id && (
+                                            <div style={{ padding: '0 12px 12px 12px' }}>
+                                                <button
+                                                    style={{
+                                                        width: '100%',
+                                                        padding: '8px',
+                                                        backgroundColor: '#3498db',
+                                                        color: 'white',
+                                                        border: 'none',
+                                                        borderRadius: '25px',
+                                                        fontSize: '0.9rem',
+                                                        fontWeight: '500',
+                                                        cursor: 'pointer',
+                                                        transition: 'all 0.3s ease'
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        e.target.style.backgroundColor = '#2980b9'
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.target.style.backgroundColor = '#3498db'
+                                                    }}
+                                                    onClick={() => handleMakeOffer(listing)}
+                                                >
+                                                    MAKE OFFER
+                                                </button>
+                                            </div>
                                         )}
                                         
-                                        {offer.seller_id === user?.id && (
-                                            <p style={{ color: '#e67e22', textAlign: 'center', marginTop: '15px' }}>Your offer</p>
+                                        {listing.seller_id === user?.id && (
+                                            <div style={{ padding: '0 12px 12px 12px' }}>
+                                                <p style={{ 
+                                                    color: '#e67e22', 
+                                                    textAlign: 'center', 
+                                                    margin: 0,
+                                                    fontSize: '0.9rem',
+                                                    fontWeight: '500'
+                                                }}>
+                                                    YOUR LISTING
+                                                </p>
+                                            </div>
                                         )}
                                     </div>
                                 </div>
                             ))}
                         </div>
                         
-                        {offers.length === 0 && (
+                        {listings.length === 0 && (
                             <div className="text-center mt-5">
-                                <h4 style={{ fontSize: '2rem', fontWeight: '300', color: '#333' }}>No offers available</h4>
-                                <p style={{ color: '#666' }}>Check back later or create your own offer!</p>
+                                <h4 style={{ fontSize: '2rem', fontWeight: '300', color: '#333' }}>No listings available</h4>
+                                <p style={{ color: '#666' }}>Check back later or create your own listing!</p>
                             </div>
                         )}
                     </>
                 )}
             </div>
+
+            {/* Offer Modal - világos téma */}
+            {showOfferModal && selectedListing && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: 'rgba(0,0,0,0.5)',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    zIndex: 2000
+                }}>
+                    <div style={{
+                        backgroundColor: '#ffffff',
+                        borderRadius: '20px',
+                        padding: '25px',
+                        maxWidth: '450px',
+                        width: '90%',
+                        maxHeight: '80vh',
+                        overflowY: 'auto',
+                        boxShadow: '0 10px 25px rgba(0,0,0,0.1)'
+                    }}>
+                        <h3 style={{ marginBottom: '15px', color: '#333', fontSize: '1.3rem' }}>Make an Offer</h3>
+                        <p style={{ marginBottom: '15px', color: '#666', fontSize: '0.95rem' }}>
+                            For: <strong style={{ color: '#e67e22' }}>{selectedListing.manufacturer} {selectedListing.name}</strong>
+                        </p>
+                        
+                        <h4 style={{ marginBottom: '12px', color: '#333', fontSize: '1.1rem' }}>Select a card to offer:</h4>
+                        
+                        <div style={{ maxHeight: '250px', overflowY: 'auto', marginBottom: '15px' }}>
+                            {myCards.length > 0 ? (
+                                myCards.map(card => (
+                                    <div
+                                        key={card.id}
+                                        style={{
+                                            padding: '12px',
+                                            margin: '8px 0',
+                                            border: selectedCard?.id === card.id ? '2px solid #e67e22' : '1px solid #ddd',
+                                            borderRadius: '10px',
+                                            cursor: 'pointer',
+                                            backgroundColor: selectedCard?.id === card.id ? '#fff9f0' : '#ffffff',
+                                            transition: 'all 0.2s ease'
+                                        }}
+                                        onClick={() => setSelectedCard(card)}
+                                        onMouseEnter={(e) => {
+                                            if (selectedCard?.id !== card.id) {
+                                                e.currentTarget.style.backgroundColor = '#f5f5f5'
+                                            }
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            if (selectedCard?.id !== card.id) {
+                                                e.currentTarget.style.backgroundColor = '#ffffff'
+                                            }
+                                        }}
+                                    >
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                            {/* Mini placeholder kép */}
+                                            <div style={{
+                                                width: '50px',
+                                                height: '50px',
+                                                backgroundColor: '#f0f0f0',
+                                                borderRadius: '8px',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                color: '#999',
+                                                fontSize: '0.7rem'
+                                            }}>
+                                                🚗
+                                            </div>
+                                            <div>
+                                                <strong style={{ color: '#333' }}>{card.manufacturer} {card.name}</strong>
+                                                <p style={{ margin: '4px 0 0 0', color: '#666', fontSize: '0.8rem' }}>
+                                                    {card.horsepower} HP | 0-100: {card.acceleration}s
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <p style={{ color: '#666', textAlign: 'center', padding: '20px' }}>
+                                    You don't have any cards to offer
+                                </p>
+                            )}
+                        </div>
+                        
+                        <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                            <button
+                                style={{
+                                    padding: '10px 20px',
+                                    backgroundColor: 'transparent',
+                                    color: '#666',
+                                    border: '1px solid #ddd',
+                                    borderRadius: '25px',
+                                    cursor: 'pointer',
+                                    fontSize: '0.9rem',
+                                    transition: 'all 0.2s ease'
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.target.style.backgroundColor = '#f5f5f5'
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.target.style.backgroundColor = 'transparent'
+                                }}
+                                onClick={() => {
+                                    setShowOfferModal(false)
+                                    setSelectedListing(null)
+                                    setSelectedCard(null)
+                                }}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                style={{
+                                    padding: '10px 25px',
+                                    backgroundColor: selectedCard ? '#3498db' : '#cccccc',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '25px',
+                                    cursor: selectedCard ? 'pointer' : 'not-allowed',
+                                    fontSize: '0.9rem',
+                                    fontWeight: '500',
+                                    transition: 'all 0.2s ease'
+                                }}
+                                onMouseEnter={(e) => {
+                                    if (selectedCard) {
+                                        e.target.style.backgroundColor = '#2980b9'
+                                    }
+                                }}
+                                onMouseLeave={(e) => {
+                                    if (selectedCard) {
+                                        e.target.style.backgroundColor = '#3498db'
+                                    }
+                                }}
+                                onClick={handleOfferSubmit}
+                                disabled={!selectedCard}
+                            >
+                                Send Offer
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }
