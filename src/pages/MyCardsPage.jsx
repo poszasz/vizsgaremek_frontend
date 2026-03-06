@@ -7,6 +7,8 @@ import { getMyCards } from "../api"
 export default function MyCardsPage() {
     const navigation = useNavigate()
     const [cards, setCards] = useState([])
+    const [groupedCards, setGroupedCards] = useState([])
+    const [totalCards, setTotalCards] = useState(0)
     const [loading, setLoading] = useState(true)
     const [user, setUser] = useState(null)
     const [showNotifications, setShowNotifications] = useState(false)
@@ -31,6 +33,29 @@ export default function MyCardsPage() {
         const res = await getMyCards()
         if (res.result) {
             setCards(res.cards)
+            
+            // Kártyák csoportosítása card_id alapján
+            const grouped = {}
+            let total = 0
+            
+            res.cards.forEach(card => {
+                const key = `${card.manufacturer}_${card.name}_${card.card_id || card.id}`
+                if (grouped[key]) {
+                    grouped[key].count += 1
+                } else {
+                    grouped[key] = {
+                        ...card,
+                        count: 1,
+                        card_id: card.card_id || card.id,
+                        // Megtartjuk az első példány adatait
+                        first_acquired: card.acquired_at
+                    }
+                }
+                total++
+            })
+            
+            setTotalCards(total)
+            setGroupedCards(Object.values(grouped))
         }
         setLoading(false)
     }
@@ -87,7 +112,8 @@ export default function MyCardsPage() {
         cursor: 'pointer',
         height: '100%',
         display: 'flex',
-        flexDirection: 'column'
+        flexDirection: 'column',
+        position: 'relative'
     }
 
     const imageStyle = {
@@ -107,7 +133,20 @@ export default function MyCardsPage() {
         fontSize: '1.2rem',
         fontWeight: 'bold',
         marginBottom: '5px',
-        color: '#333'
+        color: '#333',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+    }
+
+    const countBadgeStyle = {
+        backgroundColor: '#000000',  // FEKETE badge
+        color: 'white',
+        borderRadius: '20px',
+        padding: '3px 10px',
+        fontSize: '0.9rem',
+        fontWeight: 'bold',
+        marginLeft: '8px'
     }
 
     const specsPreviewStyle = {
@@ -346,20 +385,23 @@ export default function MyCardsPage() {
                     <>
                         <div className="p-4">
                             <h3 style={{ fontSize: '1.5rem', fontWeight: '300', color: '#333', marginBottom: '20px' }}>
-                                You have {cards.length} car{cards.length !== 1 ? 's' : ''} in your collection
+                                You have {totalCards} car{totalCards !== 1 ? 's' : ''} in your collection
+                                <span style={{ fontSize: '1rem', color: '#666', marginLeft: '10px' }}>
+                                    ({groupedCards.length} different models)
+                                </span>
                             </h3>
                             
                             {/* 5x3-as rács */}
                             <div style={cardContainerStyle}>
-                                {cards.map(card => (
+                                {groupedCards.map((card, index) => (
                                     <div 
-                                        key={card.id} 
+                                        key={index}
                                         style={cardStyle}
                                         onClick={() => handleCardClick(card)}
                                         onMouseEnter={(e) => {
                                             e.currentTarget.style.transform = 'scale(1.05)'
                                             e.currentTarget.style.boxShadow = '0 10px 20px rgba(0,0,0,0.1)'
-                                            e.currentTarget.style.borderColor = '#3498db'
+                                            e.currentTarget.style.borderColor = '#000000'  // FEKETE border hoverre
                                         }}
                                         onMouseLeave={(e) => {
                                             e.currentTarget.style.transform = 'scale(1)'
@@ -377,10 +419,15 @@ export default function MyCardsPage() {
                                             }}
                                         />
                                         
-                                        {/* Tartalom - csak alap adatok */}
+                                        {/* Tartalom */}
                                         <div style={contentStyle}>
                                             <div style={carNameStyle}>
                                                 {card.manufacturer} {card.name}
+                                                {card.count > 1 && (
+                                                    <span style={countBadgeStyle}>
+                                                        x{card.count}
+                                                    </span>
+                                                )}
                                             </div>
                                             
                                             <div style={specsPreviewStyle}>
@@ -418,7 +465,7 @@ export default function MyCardsPage() {
                             </div>
                             
                             {/* Ha nincs elég kártya */}
-                            {cards.length === 0 && (
+                            {groupedCards.length === 0 && (
                                 <div className="text-center mt-5">
                                     <h4 style={{ fontSize: '2rem', fontWeight: '300', color: '#333' }}>No cards in your collection yet</h4>
                                     <p style={{ color: '#666' }}>Open packs or trade with other players to get cards!</p>
@@ -496,7 +543,7 @@ export default function MyCardsPage() {
                             />
                         </div>
 
-                        {/* Cím */}
+                        {/* Cím darabszámmal */}
                         <h2 style={{ 
                             color: '#333', 
                             marginBottom: '20px',
@@ -505,6 +552,16 @@ export default function MyCardsPage() {
                             fontWeight: '600'
                         }}>
                             {selectedCard.manufacturer} {selectedCard.name}
+                            {selectedCard.count > 1 && (
+                                <span style={{
+                                    fontSize: '1.2rem',
+                                    color: '#666',
+                                    marginLeft: '10px',
+                                    fontWeight: 'normal'
+                                }}>
+                                    (x{selectedCard.count})
+                                </span>
+                            )}
                         </h2>
 
                         {/* Adatok 2 oszlopban */}
@@ -565,18 +622,18 @@ export default function MyCardsPage() {
                                     <span style={detailValueStyle}>{selectedCard.acceleration} s</span>
                                 </div>
                                 <div style={detailItemStyle}>
-                                    <span style={detailLabelStyle}>Acquired:</span>
-                                    <span style={detailValueStyle}>{new Date(selectedCard.acquired_at).toLocaleDateString()}</span>
+                                    <span style={detailLabelStyle}>First Acquired:</span>
+                                    <span style={detailValueStyle}>{new Date(selectedCard.first_acquired || selectedCard.acquired_at).toLocaleDateString()}</span>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Bezárás gomb */}
+                        {/* Bezárás gomb - FEKETE */}
                         <div style={{ textAlign: 'center', marginTop: '30px' }}>
                             <button
                                 style={{
                                     padding: '12px 30px',
-                                    backgroundColor: '#3498db',
+                                    backgroundColor: '#000000',
                                     color: 'white',
                                     border: 'none',
                                     borderRadius: '30px',
@@ -586,10 +643,10 @@ export default function MyCardsPage() {
                                     transition: 'all 0.3s ease'
                                 }}
                                 onMouseEnter={(e) => {
-                                    e.target.style.backgroundColor = '#2980b9'
+                                    e.target.style.backgroundColor = '#333333'
                                 }}
                                 onMouseLeave={(e) => {
-                                    e.target.style.backgroundColor = '#3498db'
+                                    e.target.style.backgroundColor = '#000000'
                                 }}
                                 onClick={() => {
                                     setShowCardModal(false)
