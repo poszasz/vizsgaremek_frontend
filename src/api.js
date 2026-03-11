@@ -228,6 +228,42 @@ export async function getMyListings() {
     }
 }
 
+// ========== SAJÁT FÜGGŐBEN LÉVŐ OFFEREK LEKÉRÉSE ==========
+export async function getMyPendingOffers() {
+    try {
+        const res = await fetch(`${BASE}/my-pending-offers`, {
+            method: 'GET',
+            credentials: 'include',
+            mode: 'cors',
+            headers: {'Content-Type': 'application/json'}
+        })
+        const data = await res.json()
+        if(!res.ok) return {result: false, message: data.message, offers: []}
+        else return {result: true, offers: data.offers || []}
+    } catch (error) {
+        console.error("Fetch error:", error)
+        return {result: false, message: "Network error: " + error.message, offers: []}
+    }
+}
+
+// ========== OFFER TÖRLÉSE ==========
+export async function deleteOffer(offerId) {
+    try {
+        const res = await fetch(`${BASE}/offer/${offerId}`, {
+            method: 'DELETE',
+            credentials: 'include',
+            mode: 'cors',
+            headers: {'Content-Type': 'application/json'}
+        })
+        const data = await res.json()
+        if(!res.ok) return {result: false, message: data.message}
+        else return {result: true, message: data.message}
+    } catch (error) {
+        console.error("Fetch error:", error)
+        return {result: false, message: "Network error: " + error.message}
+    }
+}
+
 // ========== LISTING TÖRLÉSE ==========
 export async function deleteListing(listingId) {
     try {

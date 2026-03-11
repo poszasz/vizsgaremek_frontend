@@ -56,18 +56,13 @@ export default function LoginPage() {
     return (
         <div className="vh-100 d-flex flex-column">
             {/* Fix méretű navbar */}
-            <nav className="navbar" style={{ 
-                height: '70px', 
-                minHeight: '70px',
-                backgroundColor: '#d1d1d1'
+            <nav className="navbar" style={{ height: '70px', minHeight: '70px',backgroundColor: '#d1d1d1'
             }}>
                 <div className="container-fluid d-flex align-items-center justify-content-between px-4" style={{ height: '100%' }}>
-                    {/* Bal oldal üres - egyensúly miatt */}
                     <div style={{ width: '50px' }}></div>
 
                     {/* Középen a Login szöveg */}
-                    <span style={{ 
-                        fontSize: '2rem', 
+                    <span style={{ fontSize: '2rem', 
                         fontWeight: '500',
                         color: '#000000',
                         lineHeight: '1',

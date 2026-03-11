@@ -2,13 +2,14 @@ import { useState, useEffect } from "react"
 import 'bootstrap/dist/css/bootstrap.min.css'
 import { useNavigate } from "react-router-dom"
 import logo from '../assets/carcardsLogo.png'
-import { getMarketListings, makeOffer, getMyCards, getMyListings, createListing } from "../api"
+import { getMarketListings, makeOffer, getMyCards, getMyListings, createListing, deleteListing, getMyPendingOffers, deleteOffer } from "../api"
 
 export default function MarketPage() {
     const navigation = useNavigate()
     const [listings, setListings] = useState([])
     const [filteredListings, setFilteredListings] = useState([])
     const [myCards, setMyCards] = useState([])
+    const [myPendingOffers, setMyPendingOffers] = useState([])
     const [loading, setLoading] = useState(true)
     const [user, setUser] = useState(null)
     const [showNotifications, setShowNotifications] = useState(false)
@@ -17,6 +18,10 @@ export default function MarketPage() {
     const [showOfferModal, setShowOfferModal] = useState(false)
     const [showPostOfferModal, setShowPostOfferModal] = useState(false)
     const [selectedCardForListing, setSelectedCardForListing] = useState(null)
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+    const [listingToDelete, setListingToDelete] = useState(null)
+    const [showDeleteOfferConfirm, setShowDeleteOfferConfirm] = useState(false)
+    const [offerToDelete, setOfferToDelete] = useState(null)
 
     // Szűrő állapot
     const [filterType, setFilterType] = useState('all')
@@ -33,11 +38,20 @@ export default function MarketPage() {
         setUser(JSON.parse(userData || '{}'))
         loadListings()
         loadMyCards()
+        loadMyPendingOffers()
     }, [])
 
     useEffect(() => {
         applyFilter()
     }, [listings, filterType, user])
+
+    const loadMyPendingOffers = async () => {
+        const res = await getMyPendingOffers()
+        if (res.result) {
+            console.log("Saját függőben lévő offerek:", res.offers)
+            setMyPendingOffers(res.offers)
+        }
+    }
 
     const applyFilter = () => {
         if (!user) return
@@ -72,36 +86,30 @@ export default function MarketPage() {
     const loadMyCards = async () => {
         const res = await getMyCards()
         if (res.result) {
-            console.log("===== KÁRTYÁK DEBUG =====")
-            console.log("Összes kártya a backendből:", res.cards)
-
-            // Lekérjük a saját listingjeinket
-            const myListingsRes = await getMyListings()
-            console.log("Saját listingek:", myListingsRes)
-
-            const listedCardIds = myListingsRes.result
-                ? myListingsRes.listings.map(l => l.user_card_id)
-                : []
-
-            console.log("Listingelt kártya ID-k (user_card_id):", listedCardIds)
-
-            // Megnézzük, hogy a kártyák közül melyek listingeltek
-            const cardsWithStatus = res.cards.map(card => {
-                const isListed = listedCardIds.includes(card.id)
-                console.log(`Kártya ID: ${card.id} (user_cards.id) - ${card.manufacturer} ${card.name} - Listingelve: ${isListed ? 'IGEN' : 'NEM'}`)
+            console.log("===== KÁRTYÁK BACKEND VÁLASZ =====")
+            console.log("Teljes válasz:", res.cards)
+            res.cards.forEach(card => {
+                console.log(`${card.manufacturer} ${card.name}: id=${card.id}, is_listed=${card.is_listed}, is_offered=${card.is_offered}`)
+            })
+            
+            const cardsWithUserCardId = res.cards.map(card => {
+                console.log(`MAPPING: ${card.manufacturer} ${card.name} - cards.id=${card.id}, user_cards.id lesz: ${card.id}`)
                 return {
                     ...card,
-                    isListed,
-                    user_card_id: card.id
+                    user_card_id: card.id  // Ez a user_cards.id
                 }
             })
-
-            // Csak azokat a kártyákat tartjuk meg, amik nincsenek listingelve
-            const availableCards = cardsWithStatus.filter(card => !card.isListed)
-
-            console.log("Elérhető kártyák (nem listingeltek):", availableCards)
+            
+            const availableCards = cardsWithUserCardId.filter(
+                card => !card.is_listed && !card.is_offered
+            )
+            
+            console.log("Elérhető kártyák (nem listingelve, nem offerben):", availableCards.length)
+            availableCards.forEach(card => {
+                console.log(`- ${card.manufacturer} ${card.name} (user_card_id: ${card.user_card_id})`)
+            })
             console.log("=========================")
-
+    
             setMyCards(availableCards)
         }
     }
@@ -123,8 +131,17 @@ export default function MarketPage() {
             alert("Please select a card to list")
             return
         }
-
+    
+        console.log("===== LISTING LÉTREHOZÁS =====")
+        console.log("Kiválasztott kártya teljes objektuma:", selectedCardForListing)
+        console.log("Kiválasztott kártya neve:", selectedCardForListing.manufacturer, selectedCardForListing.name)
+        console.log("Küldött user_card_id:", selectedCardForListing.user_card_id)
+        console.log("Küldött típusa:", typeof selectedCardForListing.user_card_id)
+        console.log("==============================")
+    
         const res = await createListing(selectedCardForListing.user_card_id)
+        console.log("Válasz a szervertől:", res)
+        
         if (res.result) {
             alert("Listing created successfully!")
             setShowPostOfferModal(false)
@@ -134,6 +151,57 @@ export default function MarketPage() {
         } else {
             alert(res.message || "Failed to create listing")
         }
+    }
+
+    const handleDeleteClick = (listing) => {
+        setListingToDelete(listing)
+        setShowDeleteConfirm(true)
+    }
+
+    const handleDeleteConfirm = async () => {
+        if (!listingToDelete) return
+
+        const res = await deleteListing(listingToDelete.listing_id)
+        if (res.result) {
+            alert("Listing deleted successfully!")
+            setShowDeleteConfirm(false)
+            setListingToDelete(null)
+            await loadListings()
+            await loadMyCards()
+        } else {
+            alert(res.message || "Failed to delete listing")
+        }
+    }
+
+    const handleDeleteCancel = () => {
+        setShowDeleteConfirm(false)
+        setListingToDelete(null)
+    }
+
+    const handleDeleteOfferClick = (offer) => {
+        setOfferToDelete(offer)
+        setShowDeleteOfferConfirm(true)
+    }
+
+    const handleDeleteOfferConfirm = async () => {
+        if (!offerToDelete) return
+
+        const res = await deleteOffer(offerToDelete.offer_id)
+        if (res.result) {
+            alert("Offer cancelled successfully!")
+            setShowDeleteOfferConfirm(false)
+            setOfferToDelete(null)
+            // Frissítsük a kártyákat és az offereket
+            await loadMyPendingOffers()
+            await loadMyCards()
+        } else {
+            alert(res.message || "Failed to delete offer")
+        }
+    }
+
+    const handleDeleteOfferCancel = () => {
+        setShowDeleteOfferConfirm(false)
+        setOfferToDelete(null)
     }
 
     const handleOfferSubmit = async () => {
@@ -160,11 +228,10 @@ export default function MarketPage() {
             setSelectedListing(null)
             setSelectedUserCardId(null)
             
-            // Frissítsük a listingeket
+            // Frissítsük a listingeket, kártyákat és offereket
             await loadListings()
-            
-            // ÉS töltsük újra a kártyákat a backendből
             await loadMyCards()
+            await loadMyPendingOffers()
         } else {
             alert(res.message || "Failed to send offer")
         }
@@ -199,7 +266,7 @@ export default function MarketPage() {
         return item.image_url || `https://via.placeholder.com/300x150?text=${item.manufacturer}+${item.name}`;
     }
 
-    // Kártya stílus a Post Offer modalhoz (hasonló a MyCardsPage-hez)
+    // Kártya stílus a Post Offer modalhoz
     const cardStyle = {
         backgroundColor: '#ffffff',
         borderRadius: '15px',
@@ -467,12 +534,12 @@ export default function MarketPage() {
                     </div>
                 ) : (
                     <>
-                        {/* Szűrő sor - középre igazítva, Post Offer gomb jobb oldalon */}
+                        {/* Szűrő sor */}
                         <div className="row mb-4 align-items-center">
                             <div className="col-12 d-flex justify-content-between align-items-center">
-                                <div style={{ width: '120px' }}></div> {/* Bal oldali spacer */}
+                                <div style={{ width: '120px' }}></div>
                                 
-                                {/* Középen a szűrők - FEKETÉK */}
+                                {/* Középen a szűrők */}
                                 <div style={{
                                     display: 'flex',
                                     gap: '10px',
@@ -565,7 +632,7 @@ export default function MarketPage() {
                                     </button>
                                 </div>
                                 
-                                {/* Jobb oldalon a Post Offer gomb - FEKETE */}
+                                {/* Jobb oldalon a Post Offer gomb */}
                                 <button
                                     style={{
                                         padding: '10px 25px',
@@ -592,6 +659,73 @@ export default function MarketPage() {
                                 </button>
                             </div>
                         </div>
+
+                        {/* Saját függőben lévő offerek szekció */}
+                        {myPendingOffers.length > 0 && (
+                            <div className="row mb-4">
+                                <div className="col-12">
+                                    <h3 style={{ fontSize: '1.5rem', fontWeight: '300', color: '#333', marginBottom: '15px' }}>
+                                        My Pending Offers ({myPendingOffers.length})
+                                    </h3>
+                                    <div className="row">
+                                        {myPendingOffers.map(offer => (
+                                            <div key={offer.offer_id} className="col-md-3 mb-4">
+                                                <div style={{
+                                                    backgroundColor: '#ffffff',
+                                                    borderRadius: '15px',
+                                                    overflow: 'hidden',
+                                                    border: '1px solid #ddd',
+                                                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                                                    height: '100%',
+                                                    display: 'flex',
+                                                    flexDirection: 'column'
+                                                }}>
+                                                    <div style={{ padding: '15px', flex: 1 }}>
+                                                        <h5 style={{ margin: '0 0 8px 0', color: '#333', fontSize: '1rem', fontWeight: '600' }}>
+                                                            Your offer
+                                                        </h5>
+                                                        <p style={{ margin: '4px 0', color: '#666', fontSize: '0.9rem' }}>
+                                                            <strong>Card:</strong> {offer.manufacturer} {offer.name}
+                                                        </p>
+                                                        <p style={{ margin: '4px 0', color: '#666', fontSize: '0.9rem' }}>
+                                                            <strong>HP:</strong> {offer.horsepower} HP
+                                                        </p>
+                                                        <p style={{ margin: '4px 0', color: '#666', fontSize: '0.8rem' }}>
+                                                            Created: {new Date(offer.created_at).toLocaleDateString()}
+                                                        </p>
+                                                    </div>
+                                                    <div style={{ padding: '0 12px 12px 12px' }}>
+                                                        <button
+                                                            style={{
+                                                                width: '100%',
+                                                                padding: '8px',
+                                                                backgroundColor: '#dc3545',
+                                                                color: 'white',
+                                                                border: 'none',
+                                                                borderRadius: '25px',
+                                                                fontSize: '0.9rem',
+                                                                fontWeight: '500',
+                                                                cursor: 'pointer',
+                                                                transition: 'all 0.3s ease'
+                                                            }}
+                                                            onMouseEnter={(e) => {
+                                                                e.target.style.backgroundColor = '#c82333'
+                                                            }}
+                                                            onMouseLeave={(e) => {
+                                                                e.target.style.backgroundColor = '#dc3545'
+                                                            }}
+                                                            onClick={() => handleDeleteOfferClick(offer)}
+                                                        >
+                                                            DELETE OFFER
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         <div className="row mb-4">
                             <div className="col-12">
@@ -620,7 +754,7 @@ export default function MarketPage() {
                                         onMouseEnter={(e) => {
                                             e.currentTarget.style.transform = 'scale(1.02)'
                                             e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)'
-                                            e.currentTarget.style.borderColor = '#000000'  // FEKETE border hoverre
+                                            e.currentTarget.style.borderColor = '#000000'
                                         }}
                                         onMouseLeave={(e) => {
                                             e.currentTarget.style.transform = 'scale(1)'
@@ -679,7 +813,7 @@ export default function MarketPage() {
                                             </p>
                                         </div>
 
-                                        {/* Gomb - FEKETE */}
+                                        {/* Gombok */}
                                         {listing.seller_id !== user?.id && (
                                             <div style={{ padding: '0 12px 12px 12px' }}>
                                                 <button
@@ -710,15 +844,41 @@ export default function MarketPage() {
 
                                         {listing.seller_id === user?.id && (
                                             <div style={{ padding: '0 12px 12px 12px' }}>
-                                                <p style={{
-                                                    color: '#666',
-                                                    textAlign: 'center',
-                                                    margin: 0,
-                                                    fontSize: '0.9rem',
-                                                    fontWeight: '500'
-                                                }}>
-                                                    YOUR LISTING
-                                                </p>
+                                                <div style={{ display: 'flex', gap: '8px' }}>
+                                                    <p style={{
+                                                        color: '#666',
+                                                        textAlign: 'center',
+                                                        margin: 0,
+                                                        fontSize: '0.9rem',
+                                                        fontWeight: '500',
+                                                        flex: 1,
+                                                        alignSelf: 'center'
+                                                    }}>
+                                                        YOUR LISTING
+                                                    </p>
+                                                    <button
+                                                        style={{
+                                                            padding: '6px 12px',
+                                                            backgroundColor: '#dc3545',
+                                                            color: 'white',
+                                                            border: 'none',
+                                                            borderRadius: '20px',
+                                                            fontSize: '0.8rem',
+                                                            fontWeight: '500',
+                                                            cursor: 'pointer',
+                                                            transition: 'all 0.3s ease'
+                                                        }}
+                                                        onMouseEnter={(e) => {
+                                                            e.target.style.backgroundColor = '#c82333'
+                                                        }}
+                                                        onMouseLeave={(e) => {
+                                                            e.target.style.backgroundColor = '#dc3545'
+                                                        }}
+                                                        onClick={() => handleDeleteClick(listing)}
+                                                    >
+                                                        DELETE
+                                                    </button>
+                                                </div>
                                             </div>
                                         )}
                                     </div>
@@ -740,7 +900,165 @@ export default function MarketPage() {
                 )}
             </div>
 
-            {/* Offer Modal - gombok FEKETÉK */}
+            {/* Delete Listing Confirmation Modal */}
+            {showDeleteConfirm && listingToDelete && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: 'rgba(0,0,0,0.5)',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    zIndex: 2000
+                }}>
+                    <div style={{
+                        backgroundColor: '#ffffff',
+                        borderRadius: '20px',
+                        padding: '30px',
+                        maxWidth: '400px',
+                        width: '90%',
+                        boxShadow: '0 10px 25px rgba(0,0,0,0.1)'
+                    }}>
+                        <h3 style={{ marginBottom: '15px', color: '#333', fontSize: '1.3rem' }}>Delete Listing</h3>
+                        <p style={{ marginBottom: '20px', color: '#666', fontSize: '1rem' }}>
+                            Are you sure you want to delete your listing for <strong>{listingToDelete.manufacturer} {listingToDelete.name}</strong>?
+                        </p>
+                        <p style={{ marginBottom: '25px', color: '#666', fontSize: '0.9rem' }}>
+                            This will remove it from the market and you can trade this card again.
+                        </p>
+                        
+                        <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                            <button
+                                style={{
+                                    padding: '10px 20px',
+                                    backgroundColor: 'transparent',
+                                    color: '#666',
+                                    border: '1px solid #ddd',
+                                    borderRadius: '25px',
+                                    cursor: 'pointer',
+                                    fontSize: '0.9rem',
+                                    transition: 'all 0.2s ease'
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.target.style.backgroundColor = '#f5f5f5'
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.target.style.backgroundColor = 'transparent'
+                                }}
+                                onClick={handleDeleteCancel}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                style={{
+                                    padding: '10px 25px',
+                                    backgroundColor: '#dc3545',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '25px',
+                                    cursor: 'pointer',
+                                    fontSize: '0.9rem',
+                                    fontWeight: '500',
+                                    transition: 'all 0.2s ease'
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.target.style.backgroundColor = '#c82333'
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.target.style.backgroundColor = '#dc3545'
+                                }}
+                                onClick={handleDeleteConfirm}
+                            >
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Offer Confirmation Modal */}
+            {showDeleteOfferConfirm && offerToDelete && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: 'rgba(0,0,0,0.5)',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    zIndex: 2000
+                }}>
+                    <div style={{
+                        backgroundColor: '#ffffff',
+                        borderRadius: '20px',
+                        padding: '30px',
+                        maxWidth: '400px',
+                        width: '90%',
+                        boxShadow: '0 10px 25px rgba(0,0,0,0.1)'
+                    }}>
+                        <h3 style={{ marginBottom: '15px', color: '#333', fontSize: '1.3rem' }}>Delete Offer</h3>
+                        <p style={{ marginBottom: '20px', color: '#666', fontSize: '1rem' }}>
+                            Are you sure you want to delete your offer for <strong>{offerToDelete.manufacturer} {offerToDelete.name}</strong>?
+                        </p>
+                        <p style={{ marginBottom: '25px', color: '#666', fontSize: '0.9rem' }}>
+                            This will remove the offer and you can use this card again.
+                        </p>
+                        
+                        <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                            <button
+                                style={{
+                                    padding: '10px 20px',
+                                    backgroundColor: 'transparent',
+                                    color: '#666',
+                                    border: '1px solid #ddd',
+                                    borderRadius: '25px',
+                                    cursor: 'pointer',
+                                    fontSize: '0.9rem',
+                                    transition: 'all 0.2s ease'
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.target.style.backgroundColor = '#f5f5f5'
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.target.style.backgroundColor = 'transparent'
+                                }}
+                                onClick={handleDeleteOfferCancel}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                style={{
+                                    padding: '10px 25px',
+                                    backgroundColor: '#dc3545',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '25px',
+                                    cursor: 'pointer',
+                                    fontSize: '0.9rem',
+                                    fontWeight: '500',
+                                    transition: 'all 0.2s ease'
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.target.style.backgroundColor = '#c82333'
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.target.style.backgroundColor = '#dc3545'
+                                }}
+                                onClick={handleDeleteOfferConfirm}
+                            >
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Offer Modal */}
             {showOfferModal && selectedListing && (
                 <div style={{
                     position: 'fixed',
@@ -886,7 +1204,7 @@ export default function MarketPage() {
                 </div>
             )}
 
-            {/* Post Offer Modal - NAGYOBB, kártyák részletes megjelenítésével, gombok FEKETÉK */}
+            {/* Post Offer Modal */}
             {showPostOfferModal && (
                 <div style={{
                     position: 'fixed',
